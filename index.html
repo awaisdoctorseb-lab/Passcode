@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Lock Screen</title>
+    <style>
+        :root {
+            --ios-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; font-family: var(--ios-font); color: white;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* Fixed Blurry Mountain Wallpaper */
+        .background-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+        }
+
+        .blur-overlay {
+            position: absolute;
+            width: 100%; height: 100%;
+            backdrop-filter: blur(25px) brightness(0.8);
+            -webkit-backdrop-filter: blur(25px) brightness(0.8);
+        }
+
+        .container {
+            display: flex; flex-direction: column; align-items: center;
+            height: 100vh; justify-content: space-between; 
+            padding: 90px 0 70px 0; box-sizing: border-box;
+            position: relative; z-index: 1;
+        }
+
+        /* Clock Section */
+        #clock { font-size: 80px; font-weight: 200; letter-spacing: -2px; }
+        #date { font-size: 20px; font-weight: 400; margin-top: -10px; }
+
+        /* Passcode Area */
+        .passcode-area { text-align: center; flex-grow: 1; margin-top: 50px; }
+        
+        #status-text {
+            font-size: 18px; font-weight: 400; letter-spacing: 0.5px;
+            padding: 20px; /* Larger hit area for the secret */
+        }
+
+        .dots {
+            display: flex; gap: 18px; margin: 10px auto; justify-content: center;
+        }
+
+        .dot {
+            width: 12px; height: 12px; border: 1.5px solid white;
+            border-radius: 50%; transition: background 0.1s;
+        }
+        .dot.filled { background: white; }
+
+        /* Keypad */
+        .keypad {
+            display: grid; grid-template-columns: repeat(3, 75px);
+            gap: 15px 25px; margin-bottom: 30px;
+        }
+
+        .key {
+            width: 75px; height: 75px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px; font-weight: 400; cursor: pointer;
+        }
+
+        .key:active { background: rgba(255, 255, 255, 0.4); }
+
+        .footer-text {
+            width: 280px; display: flex; justify-content: space-between;
+            font-size: 16px; font-weight: 500; opacity: 0.9;
+        }
+
+        .shake { animation: shake 0.4s ease-in-out; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-12px); }
+            40%, 80% { transform: translateX(12px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="background-container"><div class="blur-overlay"></div></div>
+
+<div class="container">
+    <div style="text-align: center;">
+        <div id="clock">12:00</div>
+        <div id="date">Monday, June 5</div>
+    </div>
+
+    <div class="passcode-area">
+        <div id="status-text">Enter Passcode</div>
+        <div class="dots">
+            <div class="dot"></div><div class="dot"></div>
+            <div class="dot"></div><div class="dot"></div>
+        </div>
+    </div>
+
+    <div class="keypad">
+        <div class="key" onclick="press(1)">1</div><div class="key" onclick="press(2)">2</div><div class="key" onclick="press(3)">3</div>
+        <div class="key" onclick="press(4)">4</div><div class="key" onclick="press(5)">5</div><div class="key" onclick="press(6)">6</div>
+        <div class="key" onclick="press(7)">7</div><div class="key" onclick="press(8)">8</div><div class="key" onclick="press(9)">9</div>
+        <div style="width:75px"></div><div class="key" onclick="press(0)">0</div><div style="width:75px"></div>
+    </div>
+
+    <div class="footer-text">
+        <span>Emergency</span>
+        <span>Cancel</span>
+    </div>
+</div>
+
+<script>
+    let input = "";
+    let lastStored = "0000";
+    let peekEnabled = false;
+
+    function updateDateTime() {
+        if (peekEnabled) return;
+        const now = new Date();
+        let h = now.getHours();
+        let m = now.getMinutes().toString().padStart(2, '0');
+        h = h % 12 || 12;
+        document.getElementById('clock').innerText = `${h}:${m}`;
+        
+        const options = { weekday: 'long', month: 'long', day: 'numeric' };
+        document.getElementById('date').innerText = now.toLocaleDateString('en-US', options);
+    }
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+
+    function press(num) {
+        if (input.length < 4) {
+            input += num;
+            updateDots();
+            if (navigator.vibrate) navigator.vibrate(15);
+        }
+        if (input.length === 4) {
+            lastStored = input;
+            setTimeout(() => {
+                document.getElementById('status-text').classList.add('shake');
+                if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+                setTimeout(() => {
+                    document.getElementById('status-text').classList.remove('shake');
+                    input = "";
+                    updateDots();
+                }, 400);
+            }, 300);
+        }
+    }
+
+    function updateDots() {
+        const dots = document.querySelectorAll('.dot');
+        dots.forEach((dot, i) => dot.classList.toggle('filled', i < input.length));
+    }
+
+    // THE SECRET REVEAL LOGIC
+    const trigger = document.getElementById('status-text');
+    let pressTimer;
+
+    trigger.addEventListener('touchstart', (e) => {
+        // Start a timer for 1 second
+        pressTimer = setTimeout(() => {
+            peekEnabled = true;
+            const p1 = lastStored.substring(0, 2);
+            const p2 = lastStored.substring(2, 4);
+            document.getElementById('clock').innerText = `${p1}:${p2}`;
+            if (navigator.vibrate) navigator.vibrate(30);
+        }, 1000);
+    });
+
+    // When finger leaves the text, reset to real time
+    trigger.addEventListener('touchend', () => {
+        clearTimeout(pressTimer);
+        peekEnabled = false;
+        updateDateTime();
+    });
+
+    trigger.addEventListener('touchcancel', () => {
+        clearTimeout(pressTimer);
+        peekEnabled = false;
+        updateDateTime();
+    });
+
+</script>
+</body>
+</html>
