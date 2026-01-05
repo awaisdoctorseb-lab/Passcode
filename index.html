@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mentalism Pro</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            background: #000; overflow: hidden;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Fixed Blurred Mountain Wallpaper */
+        .wallpaper {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80');
+            background-size: cover; background-position: center;
+            filter: blur(25px) brightness(0.7);
+            transform: scale(1.1);
+            z-index: -1;
+        }
+
+        .container {
+            position: relative; z-index: 10;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            /* Padding adjustment for Notch and Home Indicator */
+            padding: 80px 0 calc(60px + env(safe-area-inset-bottom)) 0;
+            box-sizing: border-box;
+        }
+
+        /* Top Clock Area */
+        #system-time {
+            font-size: 85px; font-weight: 200; letter-spacing: -2px;
+            margin-bottom: 5px;
+        }
+        .date { font-size: 20px; font-weight: 400; margin-top: -10px; }
+
+        /* Pincode Section */
+        .passcode-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        
+        #trigger-text {
+            font-size: 18px; 
+            margin-bottom: 20px;
+            height: 50px; /* Larger hit area */
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .dots { display: flex; gap: 22px; margin-bottom: 50px; }
+        .dot { width: 13px; height: 13px; border: 1.5px solid white; border-radius: 50%; }
+        .dot.filled { background: white; }
+
+        /* Keypad */
+        .keypad {
+            display: grid; 
+            grid-template-columns: repeat(3, 75px);
+            gap: 15px 25px;
+            justify-content: center;
+        }
+
+        .keypad button {
+            width: 75px; height: 75px; border-radius: 50%;
+            background: rgba(255,255,255,0.18); border: none;
+            color: white; font-size: 32px; font-weight: 400;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .keypad button:active { background: rgba(255,255,255,0.4); }
+
+        .footer-text {
+            width: 280px; display: flex; justify-content: space-between;
+            font-size: 17px; margin-top: 20px;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-15px); }
+            40%, 80% { transform: translateX(15px); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
+    </style>
+</head>
+<body>
+
+    <div class="wallpaper"></div>
+    <div class="container">
+        
+        <div style="text-align: center;">
+            <div id="system-time">12:00</div>
+            <div class="date" id="system-date">Monday, June 6</div>
+        </div>
+
+        <div class="passcode-area">
+            <div id="trigger-text">Enter Passcode</div>
+            
+            <div class="dots" id="dot-container">
+                <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+
+            <div class="keypad">
+                <button onclick="press('1')">1</button>
+                <button onclick="press('2')">2</button>
+                <button onclick="press('3')">3</button>
+                <button onclick="press('4')">4</button>
+                <button onclick="press('5')">5</button>
+                <button onclick="press('6')">6</button>
+                <button onclick="press('7')">7</button>
+                <button onclick="press('8')">8</button>
+                <button onclick="press('9')">9</button>
+                <div style="width:75px"></div>
+                <button onclick="press('0')">0</button>
+                <div style="width:75px"></div>
+            </div>
+            
+            <div class="footer-text">
+                <span>Emergency</span>
+                <span>Cancel</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentInput = "";
+        let lastFullCode = "0000";
+        let isSecretActive = false;
+        const dots = document.querySelectorAll('.dot');
+        const timeDisplay = document.getElementById('system-time');
+        const triggerText = document.getElementById('trigger-text');
+        const dotContainer = document.getElementById('dot-container');
+
+        // 12-Hour Format Clock
+        function updateClock() {
+            if (isSecretActive) return;
+            const now = new Date();
+            let hrs = now.getHours();
+            let mins = String(now.getMinutes()).padStart(2, '0');
+            hrs = hrs % 12 || 12; // 12-hour conversion
+            timeDisplay.innerText = `${hrs}:${mins}`;
+            
+            const options = { weekday: 'long', month: 'long', day: 'numeric' };
+            document.getElementById('system-date').innerText = now.toLocaleDateString('en-US', options);
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        function press(num) {
+            if (currentInput.length < 4) {
+                currentInput += num;
+                dots[currentInput.length - 1].classList.add('filled');
+                if (navigator.vibrate) navigator.vibrate(15);
+                
+                if (currentInput.length === 4) {
+                    lastFullCode = currentInput;
+                    setTimeout(failAnimation, 300);
+                }
+            }
+        }
+
+        function failAnimation() {
+            dotContainer.classList.add('shake');
+            if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+            setTimeout(() => {
+                currentInput = "";
+                dotContainer.classList.remove('shake');
+                dots.forEach(d => d.classList.remove('filled'));
+            }, 500);
+        }
+
+        // MAGIC REVEAL: Only shows while HOLDING
+        let timer;
+        triggerText.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            timer = setTimeout(() => {
+                isSecretActive = true;
+                const h = lastFullCode.substring(0, 2);
+                const m = lastFullCode.substring(2, 4);
+                timeDisplay.innerText = `${h}:${m}`;
+                if (navigator.vibrate) navigator.vibrate(40);
+            }, 1000); 
+        });
+
+        triggerText.addEventListener('touchend', () => {
+            clearTimeout(timer);
+            isSecretActive = false;
+            updateClock(); // Reset to real time immediately
+        });
+    </script>
+</body>
+</html>
